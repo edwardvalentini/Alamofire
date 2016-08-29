@@ -31,7 +31,7 @@ extension Request {
     /// - failure: The validation failed encountering the provided error.
     public enum ValidationResult {
         case success
-        case failure(NSError)
+        case failure(Error)
     }
 
     /// A closure used to validate a request that takes a URL request and URL response, and returns whether the
@@ -70,23 +70,12 @@ extension Request {
     ///
     /// - returns: The request.
     @discardableResult
-    public func validate<S: Sequence where S.Iterator.Element == Int>(statusCode acceptableStatusCode: S) -> Self {
+    public func validate<S: Sequence>(statusCode acceptableStatusCode: S) -> Self where S.Iterator.Element == Int {
         return validate { _, response in
             if acceptableStatusCode.contains(response.statusCode) {
                 return .success
             } else {
-                let failureReason = "Response status code was unacceptable: \(response.statusCode)"
-
-                let error = NSError(
-                    domain: ErrorDomain,
-                    code: ErrorCode.statusCodeValidationFailed.rawValue,
-                    userInfo: [
-                        NSLocalizedFailureReasonErrorKey: failureReason,
-                        ErrorUserInfoKeys.StatusCode: response.statusCode
-                    ]
-                )
-
-                return .failure(error)
+                return .failure(AFError.responseValidationFailed(reason: .unacceptableStatusCode(code: response.statusCode)))
             }
         }
     }
@@ -130,47 +119,29 @@ extension Request {
     ///
     /// - returns: The request.
     @discardableResult
-    public func validate<S: Sequence where S.Iterator.Element == String>(contentType acceptableContentTypes: S) -> Self {
+    public func validate<S: Sequence>(contentType acceptableContentTypes: S) -> Self where S.Iterator.Element == String {
         return validate { _, response in
             guard let validData = self.delegate.data, validData.count > 0 else { return .success }
 
-            if let responseContentType = response.mimeType, let responseMIMEType = MIMEType(responseContentType) {
-                for contentType in acceptableContentTypes {
-                    if let acceptableMIMEType = MIMEType(contentType), acceptableMIMEType.matches(responseMIMEType) {
-                        return .success
-                    }
-                }
-            } else {
+            guard
+                let responseContentType = response.mimeType,
+                let responseMIMEType = MIMEType(responseContentType) else {
                 for contentType in acceptableContentTypes {
                     if let mimeType = MIMEType(contentType), mimeType.type == "*" && mimeType.subtype == "*" {
                         return .success
                     }
                 }
+
+                return .failure(AFError.responseValidationFailed(reason: .missingContentType(acceptableContentTypes: Array(acceptableContentTypes))))
             }
 
-            let contentType: String
-            let failureReason: String
-
-            if let responseContentType = response.mimeType {
-                contentType = responseContentType
-
-                failureReason = (
-                    "Response content type \"\(responseContentType)\" does not match any acceptable " +
-                    "content types: \(acceptableContentTypes)"
-                )
-            } else {
-                contentType = ""
-                failureReason = "Response content type was missing and acceptable content type does not match \"*/*\""
+            for contentType in acceptableContentTypes {
+                if let acceptableMIMEType = MIMEType(contentType), acceptableMIMEType.matches(responseMIMEType) {
+                    return .success
+                }
             }
 
-            let error = NSError(
-                domain: ErrorDomain,
-                code: ErrorCode.contentTypeValidationFailed.rawValue,
-                userInfo: [
-                    NSLocalizedFailureReasonErrorKey: failureReason,
-                    ErrorUserInfoKeys.ContentType: contentType
-                ]
-            )
+            let error = AFError.responseValidationFailed(reason: .unacceptableContentType(acceptableContentTypes: Array(acceptableContentTypes), responseContentType: responseContentType))
 
             return .failure(error)
         }

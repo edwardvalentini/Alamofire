@@ -219,7 +219,7 @@ class ManagerConfigurationHeadersTestCase: BaseTestCase {
 //    ⚠️ This test has been removed as a result of rdar://26870455 in Xcode 8 Seed 1
 //    func testThatBackgroundConfigurationHeadersAreSentWithRequest() {
 //        // Given, When, Then
-//        executeAuthorizationHeaderTestForConfigurationType(.background)
+//        executeAuthorizationHeaderTest(for: .background)
 //    }
 
     private func executeAuthorizationHeaderTest(for type: ConfigurationType) {
@@ -250,7 +250,7 @@ class ManagerConfigurationHeadersTestCase: BaseTestCase {
 
         let expectation = self.expectation(description: "request should complete successfully")
 
-        var response: Response<AnyObject, NSError>?
+        var response: Response<Any>?
 
         // When
         manager.request("https://httpbin.org/headers", withMethod: .get)
@@ -268,8 +268,10 @@ class ManagerConfigurationHeadersTestCase: BaseTestCase {
             XCTAssertNotNil(response.data, "data should not be nil")
             XCTAssertTrue(response.result.isSuccess, "result should be a success")
 
+            // The `as NSString` cast is necessary due to a compiler bug. See the following rdar for more info.
+            // - https://openradar.appspot.com/radar?id=5517037090635776
             if
-                let headers = response.result.value?["headers" as NSString] as? [String: String],
+                let headers = (response.result.value as AnyObject?)?["headers" as NSString] as? [String: String],
                 let authorization = headers["Authorization"]
             {
                 XCTAssertEqual(authorization, "Bearer 123456", "authorization header value does not match")

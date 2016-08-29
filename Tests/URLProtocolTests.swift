@@ -98,7 +98,7 @@ extension ProxyURLProtocol: URLSessionDelegate {
         client?.urlProtocol(self, didLoad: data)
     }
 
-    func URLSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: NSError?) {
+    func URLSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let response = task.response {
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         }
@@ -146,7 +146,7 @@ class URLProtocolTestCase: BaseTestCase {
         var request: URLRequest?
         var response: HTTPURLResponse?
         var data: Data?
-        var error: NSError?
+        var error: Error?
 
         // When
         manager.request(urlRequest)
@@ -167,9 +167,9 @@ class URLProtocolTestCase: BaseTestCase {
         XCTAssertNotNil(data, "data should not be nil")
         XCTAssertNil(error, "error should be nil")
 
-        if let headers = response?.allHeaderFields as? [String: String] {
-            XCTAssertEqual(headers["request-header"], "foobar")
-            XCTAssertEqual(headers["session-configuration-header"], "foo")
+        if let headers = response?.allHeaderFields {
+            XCTAssertEqual(headers["request-header"] as? String, "foobar")
+            XCTAssertEqual(headers["session-configuration-header"] as? String, "foo")
         } else {
             XCTFail("headers should not be nil")
         }

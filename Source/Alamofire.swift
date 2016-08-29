@@ -75,12 +75,12 @@ extension URLRequest: URLRequestConvertible {
 extension URLRequest {
     /// Creates an instance with the specified `method`, `urlString` and `headers`.
     ///
-    /// - parameter method:    The HTTP method.
     /// - parameter urlString: The URL string.
+    /// - parameter method:    The HTTP method.
     /// - parameter headers:   The HTTP headers. `nil` by default.
     ///
     /// - returns: The new `URLRequest` instance.
-    public init(method: HTTPMethod, urlString: URLStringConvertible, headers: [String: String]? = nil) {
+    public init(urlString: URLStringConvertible, method: HTTPMethod, headers: [String: String]? = nil) {
         self.init(url: URL(string: urlString.urlString)!)
 
         if let request = urlString as? URLRequest { self = request }
@@ -111,7 +111,7 @@ extension URLRequest {
 public func request(
     _ urlString: URLStringConvertible,
     withMethod method: HTTPMethod,
-    parameters: [String: AnyObject]? = nil,
+    parameters: [String: Any]? = nil,
     encoding: ParameterEncoding = .url,
     headers: [String: String]? = nil)
     -> Request
@@ -156,7 +156,7 @@ public func download(
     _ urlString: URLStringConvertible,
     to destination: Request.DownloadFileDestination,
     withMethod method: HTTPMethod,
-    parameters: [String: AnyObject]? = nil,
+    parameters: [String: Any]? = nil,
     encoding: ParameterEncoding = .url,
     headers: [String: String]? = nil)
     -> Request
@@ -333,7 +333,7 @@ public func upload(_ stream: InputStream, with urlRequest: URLRequestConvertible
 /// - parameter headers:                 The HTTP headers. `nil` by default.
 /// - parameter encodingCompletion:      The closure called when the `MultipartFormData` encoding is complete.
 public func upload(
-    multipartFormData: (MultipartFormData) -> Void,
+    multipartFormData: @escaping (MultipartFormData) -> Void,
     usingThreshold encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold,
     to urlString: URLStringConvertible,
     withMethod method: HTTPMethod,
@@ -372,7 +372,7 @@ public func upload(
 /// - parameter urlRequest:              The URL request.
 /// - parameter encodingCompletion:      The closure called when the `MultipartFormData` encoding is complete.
 public func upload(
-    multipartFormData: (MultipartFormData) -> Void,
+    multipartFormData: @escaping (MultipartFormData) -> Void,
     usingThreshold encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold,
     with urlRequest: URLRequestConvertible,
     encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?)
